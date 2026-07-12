@@ -6,11 +6,12 @@ Guidance for Claude Code when working in this repository.
 
 Pomodoro timer app built with React Native + Expo.
 
-- **Expo** SDK 57 · **React Native** 0.86 · **React** 19.2 · **TypeScript**
+- **Expo** SDK 54 · **React Native** 0.81 · **React** 19.1 · **TypeScript**
 - Entry point: `index.ts` registers the root component `App.tsx`.
+- Pinned to SDK 54 because the published Expo Go app supports up to SDK 54.
 
 > Expo changes often. Before writing Expo code, read the versioned docs at
-> https://docs.expo.dev/versions/v57.0.0/ (see `AGENTS.md`).
+> https://docs.expo.dev/versions/v54.0.0/ (see `AGENTS.md`).
 
 ## Commands
 
