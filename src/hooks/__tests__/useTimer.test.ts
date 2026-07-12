@@ -13,62 +13,62 @@ afterEach(() => {
 });
 
 /** Advance `seconds` of ticks, flushing React updates and effects. */
-async function advance(seconds: number) {
-  await act(async () => {
+function advance(seconds: number) {
+  act(() => {
     jest.advanceTimersByTime(seconds * 1000);
   });
 }
 
 describe('useTimer', () => {
-  it('starts paused at the full work duration', async () => {
-    const { result } = await renderHook(() => useTimer(MODE));
+  it('starts paused at the full work duration', () => {
+    const { result } = renderHook(() => useTimer(MODE));
     expect(result.current.phase).toBe('work');
     expect(result.current.secondsLeft).toBe(25 * 60);
     expect(result.current.running).toBe(false);
     expect(result.current.completedSessions).toBe(0);
   });
 
-  it('counts down while running', async () => {
-    const { result } = await renderHook(() => useTimer(MODE));
-    await act(async () => result.current.start());
-    await advance(3);
+  it('counts down while running', () => {
+    const { result } = renderHook(() => useTimer(MODE));
+    act(() => result.current.start());
+    advance(3);
     expect(result.current.running).toBe(true);
     expect(result.current.secondsLeft).toBe(25 * 60 - 3);
   });
 
-  it('does not tick while paused', async () => {
-    const { result } = await renderHook(() => useTimer(MODE));
-    await act(async () => result.current.start());
-    await advance(2);
-    await act(async () => result.current.pause());
-    await advance(5);
+  it('does not tick while paused', () => {
+    const { result } = renderHook(() => useTimer(MODE));
+    act(() => result.current.start());
+    advance(2);
+    act(() => result.current.pause());
+    advance(5);
     expect(result.current.secondsLeft).toBe(25 * 60 - 2);
   });
 
-  it('switches to break and counts a session when work ends', async () => {
-    const { result } = await renderHook(() => useTimer(MODE));
-    await act(async () => result.current.start());
-    await advance(25 * 60);
+  it('switches to break and counts a session when work ends', () => {
+    const { result } = renderHook(() => useTimer(MODE));
+    act(() => result.current.start());
+    advance(25 * 60);
     expect(result.current.phase).toBe('break');
     expect(result.current.secondsLeft).toBe(5 * 60);
     expect(result.current.completedSessions).toBe(1);
   });
 
-  it('returns to work after the break without counting a new session', async () => {
-    const { result } = await renderHook(() => useTimer(MODE));
-    await act(async () => result.current.start());
-    await advance(25 * 60); // finish work -> break
-    await advance(5 * 60); // finish break -> work
+  it('returns to work after the break without counting a new session', () => {
+    const { result } = renderHook(() => useTimer(MODE));
+    act(() => result.current.start());
+    advance(25 * 60); // finish work -> break
+    advance(5 * 60); // finish break -> work
     expect(result.current.phase).toBe('work');
     expect(result.current.secondsLeft).toBe(25 * 60);
     expect(result.current.completedSessions).toBe(1);
   });
 
-  it('reset returns to the initial paused work phase', async () => {
-    const { result } = await renderHook(() => useTimer(MODE));
-    await act(async () => result.current.start());
-    await advance(10);
-    await act(async () => result.current.reset());
+  it('reset returns to the initial paused work phase', () => {
+    const { result } = renderHook(() => useTimer(MODE));
+    act(() => result.current.start());
+    advance(10);
+    act(() => result.current.reset());
     expect(result.current.phase).toBe('work');
     expect(result.current.secondsLeft).toBe(25 * 60);
     expect(result.current.running).toBe(false);
