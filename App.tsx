@@ -16,6 +16,7 @@ import {
   WORK_TRACKS,
 } from './src/constants/tracks';
 import { useBackgroundMusic } from './src/hooks/useBackgroundMusic';
+import { useCountdownBeeps } from './src/hooks/useCountdownBeeps';
 import { usePhaseNotifications } from './src/hooks/usePhaseNotifications';
 import { useTimer } from './src/hooks/useTimer';
 
@@ -48,6 +49,9 @@ export default function App() {
 
   // Alert at the exact end of the phase, even if the phone is locked.
   usePhaseNotifications(phase, endsAt);
+
+  // Beep once per second during the last 5 seconds of work: break incoming.
+  useCountdownBeeps(running && isWork, secondsLeft);
 
   useEffect(() => {
     // Keep streaming with the screen locked / app backgrounded, and play
