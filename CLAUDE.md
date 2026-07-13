@@ -37,7 +37,7 @@ src/constants/track-urls.example.ts     # template for track-urls.ts
 src/hooks/useTimer.ts                    # countdown + work/break phase logic
 src/hooks/useBackgroundMusic.ts          # streams looping music per phase
 src/hooks/usePhaseNotifications.ts       # schedules cycle-end notifications
-src/hooks/useCountdownBeeps.ts           # beeps in the last seconds of work
+src/hooks/useCountdownBeeps.ts           # beeps in the last seconds of a phase
 assets/sounds/beep.wav                   # generated 880Hz tone (ffmpeg sine)
 __mocks__/expo-audio.ts                  # jest manual mock (auto-applied)
 __mocks__/expo-notifications.ts          # jest manual mock (auto-applied)
