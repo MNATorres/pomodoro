@@ -30,7 +30,7 @@ Run the app with [Expo Go](https://expo.dev/go) or an emulator.
 ```
 App.tsx                                 # main timer screen (UI + controls)
 index.ts                                # Expo entry point
-src/constants/modes.ts                  # Pomodoro presets (25/5, 40/5, 50/10)
+src/constants/modes.ts                  # Pomodoro presets (25/5, 40/5, 50/10, 1/1 test)
 src/constants/tracks.ts                 # work/break track catalog
 src/constants/track-urls.ts             # private streaming URLs (GITIGNORED)
 src/constants/track-urls.example.ts     # template for track-urls.ts

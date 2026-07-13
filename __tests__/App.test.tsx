@@ -17,11 +17,12 @@ describe('App', () => {
     expect(screen.getByText('Iniciar')).toBeTruthy();
   });
 
-  it('shows the three mode presets', () => {
+  it('shows all mode presets', () => {
     render(<App />);
     expect(screen.getByText('25 / 5')).toBeTruthy();
     expect(screen.getByText('40 / 5')).toBeTruthy();
     expect(screen.getByText('50 / 10')).toBeTruthy();
+    expect(screen.getByText('1 / 1')).toBeTruthy();
   });
 
   it('changes the countdown when another mode is selected', () => {

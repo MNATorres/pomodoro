@@ -1,8 +1,13 @@
 import { DEFAULT_MODE, MODES } from '../modes';
 
 describe('MODES', () => {
-  it('exposes the three default presets in order', () => {
-    expect(MODES.map((m) => m.label)).toEqual(['25 / 5', '40 / 5', '50 / 10']);
+  it('exposes the default presets in order', () => {
+    expect(MODES.map((m) => m.label)).toEqual([
+      '25 / 5',
+      '40 / 5',
+      '50 / 10',
+      '1 / 1',
+    ]);
   });
 
   it('maps each preset to its work/break minutes', () => {
@@ -10,6 +15,7 @@ describe('MODES', () => {
       [25, 5],
       [40, 5],
       [50, 10],
+      [1, 1],
     ]);
   });
 
