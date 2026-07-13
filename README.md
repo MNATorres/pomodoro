@@ -12,8 +12,10 @@ A Pomodoro timer app for Android built with React Native and Expo.
 
 - Work / break countdown cycles with 25/5, 40/5 and 50/10 presets,
   plus a short 1/1 mode to try transitions quickly
-- Background music streamed per phase (`expo-audio`): pick a work track,
-  breaks play their own track
+- Background music per phase (`expo-audio`): pick a work track, breaks play
+  their own track. Tracks are downloaded to local storage on first launch
+  (streaming is only the initial fallback), so sessions never depend on the
+  network
 - Countdown beeps during the last 5 seconds of each phase
 - Works with the phone locked: wall-clock based timer, music keeps playing
   in the background, and a local notification fires when each phase ends

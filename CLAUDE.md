@@ -40,6 +40,9 @@ src/hooks/useTimer.ts                    # countdown + work/break phase logic
 src/hooks/useBackgroundMusic.ts          # streams looping music per phase
 src/hooks/usePhaseNotifications.ts       # schedules cycle-end notifications
 src/hooks/useCountdownBeeps.ts           # beeps in the last seconds of a phase
+src/hooks/useCachedTrackUri.ts           # resolves a track to local/remote uri
+src/lib/track-cache.ts                   # downloads tracks to local storage
+src/test/mocks/expo-file-system.ts       # fake for the SDK 54 File API
 assets/sounds/beep.wav                   # generated 880Hz tone (ffmpeg sine)
 __mocks__/expo-audio.ts                  # jest manual mock (auto-applied)
 __mocks__/expo-notifications.ts          # jest manual mock (auto-applied)
@@ -62,11 +65,18 @@ files ever reappear.
 - `usePhaseNotifications(phase, endsAt)` schedules a local notification for
   the exact phase end (works in Expo Go on Android; the channel must be
   created before requesting permission on Android 13+).
-- **Music:** streamed remotely with `expo-audio` while the timer runs. The
-  work phase plays the user-selected work track; breaks play `BREAK_TRACK`.
+- **Music:** played with `expo-audio` while the timer runs. The work phase
+  plays the user-selected work track; breaks play `BREAK_TRACK`.
   `useAudioPlayer` does not react to source changes — `useBackgroundMusic`
   calls `player.replace()` when the uri changes. Real URLs live only in the
   gitignored `src/constants/track-urls.ts` (repo is public; links are private).
+- **Track cache:** tracks are downloaded once to `Paths.document/tracks/`
+  (atomic .part + rename) and played from disk; streaming is only the
+  first-launch fallback. Never rely on the network mid-session: Android Doze
+  cuts background network and playback dies when the buffer drains.
+- **Testing expo-file-system:** jest-expo registers a legacy-API factory mock
+  that overrides root `__mocks__`. Tests touching the cache must override it:
+  `jest.mock('expo-file-system', () => require('<rel>/src/test/mocks/expo-file-system'))`.
 - Installed but not wired up yet:
   `@react-native-async-storage/async-storage` (persist settings/stats).
 
