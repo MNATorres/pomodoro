@@ -39,3 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# audio assets (large / copyrighted source tracks, kept local only)
+/audio/
+/assets/audio/
+
+# private streaming URLs (copy track-urls.example.ts to recreate)
+src/constants/track-urls.ts
