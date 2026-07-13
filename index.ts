@@ -1,3 +1,5 @@
+// Must be first: filters LogBox noise emitted while other modules load.
+import './src/ignore-warnings';
 import { registerRootComponent } from 'expo';
 
 import App from './App';
