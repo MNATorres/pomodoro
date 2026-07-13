@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import App from '../App';
 
 beforeEach(() => {
@@ -48,5 +48,67 @@ describe('App', () => {
     render(<App />);
     fireEvent.press(screen.getByText('Vikings'));
     expect(screen.getByText('25:00')).toBeTruthy();
+  });
+
+  it('starts with no completed sessions', () => {
+    render(<App />);
+    expect(screen.getByText('Sesiones completadas: 0')).toBeTruthy();
+  });
+
+  it('counts down while running', () => {
+    render(<App />);
+    fireEvent.press(screen.getByText('Iniciar'));
+    act(() => {
+      jest.advanceTimersByTime(5_000);
+    });
+    expect(screen.getByText('24:55')).toBeTruthy();
+  });
+
+  it('pauses keeping the remaining time', () => {
+    render(<App />);
+    fireEvent.press(screen.getByText('Iniciar'));
+    act(() => {
+      jest.advanceTimersByTime(5_000);
+    });
+    fireEvent.press(screen.getByText('Pausar'));
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
+    expect(screen.getByText('24:55')).toBeTruthy();
+    expect(screen.getByText('Iniciar')).toBeTruthy();
+  });
+
+  it('resets to the new mode when changed mid-session', () => {
+    render(<App />);
+    fireEvent.press(screen.getByText('Iniciar'));
+    act(() => {
+      jest.advanceTimersByTime(3_000);
+    });
+    fireEvent.press(screen.getByText('40 / 5'));
+    expect(screen.getByText('40:00')).toBeTruthy();
+    expect(screen.getByText('Iniciar')).toBeTruthy();
+  });
+
+  it('runs a full 1/1 work phase into the break', () => {
+    render(<App />);
+    fireEvent.press(screen.getByText('1 / 1'));
+    fireEvent.press(screen.getByText('Iniciar'));
+    act(() => {
+      jest.advanceTimersByTime(60_250);
+    });
+    expect(screen.getByText('Descanso')).toBeTruthy();
+    expect(screen.getByText('Sesiones completadas: 1')).toBeTruthy();
+  });
+
+  it('resets back to a paused work phase', () => {
+    render(<App />);
+    fireEvent.press(screen.getByText('Iniciar'));
+    act(() => {
+      jest.advanceTimersByTime(8_000);
+    });
+    fireEvent.press(screen.getByText('Reiniciar'));
+    expect(screen.getByText('25:00')).toBeTruthy();
+    expect(screen.getByText('Trabajo')).toBeTruthy();
+    expect(screen.getByText('Iniciar')).toBeTruthy();
   });
 });
