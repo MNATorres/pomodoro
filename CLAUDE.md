@@ -28,10 +28,16 @@ Run the app with [Expo Go](https://expo.dev/go) or an emulator.
 ## Structure
 
 ```
-App.tsx                  # main timer screen (UI + controls)
-index.ts                 # Expo entry point
-src/constants/modes.ts   # Pomodoro presets (25/5, 40/5, 50/10)
-src/hooks/useTimer.ts     # countdown + work/break phase logic
+App.tsx                                 # main timer screen (UI + controls)
+index.ts                                # Expo entry point
+src/constants/modes.ts                  # Pomodoro presets (25/5, 40/5, 50/10)
+src/constants/tracks.ts                 # work/break track catalog
+src/constants/track-urls.ts             # private streaming URLs (GITIGNORED)
+src/constants/track-urls.example.ts     # template for track-urls.ts
+src/hooks/useTimer.ts                    # countdown + work/break phase logic
+src/hooks/useBackgroundMusic.ts          # streams looping music per phase
+__mocks__/expo-audio.ts                  # jest manual mock (auto-applied)
+audio/                                  # local source tracks (GITIGNORED)
 ```
 
 ## Domain notes
@@ -40,9 +46,13 @@ src/hooks/useTimer.ts     # countdown + work/break phase logic
   `DEFAULT_MODE` is 25/5.
 - `useTimer(mode)` counts down and auto-switches between `work` and `break`
   phases, keeps a `completedSessions` count, and exposes `start`/`pause`/`reset`.
+- **Music:** streamed remotely with `expo-audio` while the timer runs. The
+  work phase plays the user-selected work track; breaks play `BREAK_TRACK`.
+  `useAudioPlayer` does not react to source changes — `useBackgroundMusic`
+  calls `player.replace()` when the uri changes. Real URLs live only in the
+  gitignored `src/constants/track-urls.ts` (repo is public; links are private).
 - Installed but not wired up yet: `expo-notifications` (cycle-end alerts),
-  `expo-audio` (alarm sound), `@react-native-async-storage/async-storage`
-  (persist settings/stats).
+  `@react-native-async-storage/async-storage` (persist settings/stats).
 
 ## Conventions
 
