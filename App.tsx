@@ -16,9 +16,11 @@ import {
   WORK_TRACKS,
 } from './src/constants/tracks';
 import { useBackgroundMusic } from './src/hooks/useBackgroundMusic';
+import { useCachedTrackUri } from './src/hooks/useCachedTrackUri';
 import { useCountdownBeeps } from './src/hooks/useCountdownBeeps';
 import { usePhaseNotifications } from './src/hooks/usePhaseNotifications';
 import { useTimer } from './src/hooks/useTimer';
+import { ensureTrackCached } from './src/lib/track-cache';
 
 function formatTime(totalSeconds: number): string {
   const mm = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
@@ -43,9 +45,22 @@ export default function App() {
   const isWork = phase === 'work';
   const accent = useMemo(() => (isWork ? '#e2584d' : '#3aa675'), [isWork]);
 
-  // Work phase streams the selected work track; breaks have their own track.
+  // Work phase plays the selected work track; breaks have their own track.
+  // Tracks play from local storage once downloaded (streaming is only the
+  // first-time fallback): Doze cuts background network and kills streams.
   const activeTrack = isWork ? workTrack : BREAK_TRACK;
-  useBackgroundMusic(activeTrack.uri, running);
+  const activeUri = useCachedTrackUri(activeTrack);
+  useBackgroundMusic(activeUri, running);
+
+  useEffect(() => {
+    // Pre-download every track sequentially so future sessions are offline.
+    [...WORK_TRACKS, BREAK_TRACK]
+      .reduce(
+        (chain, track) => chain.then(() => ensureTrackCached(track)).then(() => {}),
+        Promise.resolve(),
+      )
+      .catch(() => {});
+  }, []);
 
   // Alert at the exact end of the phase, even if the phone is locked.
   usePhaseNotifications(phase, endsAt);

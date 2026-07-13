@@ -1,3 +1,7 @@
+jest.mock('expo-file-system', () =>
+  require('../src/test/mocks/expo-file-system'),
+);
+
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import App from '../App';
 
