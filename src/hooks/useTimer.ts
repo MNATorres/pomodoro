@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { PomodoroMode } from '../constants/modes';
 
@@ -33,19 +33,30 @@ export function useTimer(mode: PomodoroMode): UseTimer {
 
   const running = endsAt !== null;
 
-  // Reset everything whenever the selected mode changes.
-  useEffect(() => {
+  // Reset everything whenever the selected mode changes. Done during render
+  // (the React "adjusting state when props change" pattern) instead of in an
+  // effect: an effect would run after the tick effect below had already fired
+  // with the previous mode's endsAt, overwriting the reset values.
+  const [prevMode, setPrevMode] = useState(mode);
+  if (prevMode !== mode) {
+    setPrevMode(mode);
     setEndsAt(null);
     setPhase('work');
     setSecondsLeft(mode.work * 60);
     setCompletedSessions(0);
-  }, [mode]);
+  }
 
   // While running, derive the remaining time from the end timestamp. When the
   // end is reached — even long after, e.g. while the phone was locked — roll
   // into the next phase keeping real-time alignment: the new phase starts at
   // the previous phase's end, not at the moment the app woke up. If several
   // phases went by, the effect re-runs (endsAt changed) and catches up.
+  // Guards the phase rollover so it runs exactly once per phase end: several
+  // ticks can observe the same expired endsAt before React re-renders (e.g.
+  // an interval tick and an AppState resync in the same task), and the
+  // functional completedSessions update would otherwise count twice.
+  const rolledOverAt = useRef<number | null>(null);
+
   useEffect(() => {
     if (endsAt === null) return;
 
@@ -55,6 +66,8 @@ export function useTimer(mode: PomodoroMode): UseTimer {
         setSecondsLeft(Math.ceil((endsAt - now) / 1000));
         return;
       }
+      if (rolledOverAt.current === endsAt) return;
+      rolledOverAt.current = endsAt;
       const nextPhase: Phase = phase === 'work' ? 'break' : 'work';
       const nextDurationMs =
         (nextPhase === 'work' ? mode.work : mode.break) * 60_000;
@@ -79,6 +92,7 @@ export function useTimer(mode: PomodoroMode): UseTimer {
 
   const start = useCallback(() => {
     if (running) return;
+    rolledOverAt.current = null;
     setEndsAt(Date.now() + secondsLeft * 1000);
   }, [running, secondsLeft]);
 
