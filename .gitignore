@@ -46,3 +46,6 @@ yarn-error.*
 
 # private streaming URLs (copy track-urls.example.ts to recreate)
 src/constants/track-urls.ts
+
+# test coverage reports
+coverage/
