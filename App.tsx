@@ -16,6 +16,7 @@ import {
   WORK_TRACKS,
 } from './src/constants/tracks';
 import { useBackgroundMusic } from './src/hooks/useBackgroundMusic';
+import { usePhaseNotifications } from './src/hooks/usePhaseNotifications';
 import { useTimer } from './src/hooks/useTimer';
 
 function formatTime(totalSeconds: number): string {
@@ -27,8 +28,16 @@ function formatTime(totalSeconds: number): string {
 export default function App() {
   const [mode, setMode] = useState<PomodoroMode>(DEFAULT_MODE);
   const [workTrack, setWorkTrack] = useState<Track>(DEFAULT_WORK_TRACK);
-  const { phase, secondsLeft, running, completedSessions, start, pause, reset } =
-    useTimer(mode);
+  const {
+    phase,
+    secondsLeft,
+    running,
+    endsAt,
+    completedSessions,
+    start,
+    pause,
+    reset,
+  } = useTimer(mode);
 
   const isWork = phase === 'work';
   const accent = useMemo(() => (isWork ? '#e2584d' : '#3aa675'), [isWork]);
@@ -36,6 +45,9 @@ export default function App() {
   // Work phase streams the selected work track; breaks have their own track.
   const activeTrack = isWork ? workTrack : BREAK_TRACK;
   useBackgroundMusic(activeTrack.uri, running);
+
+  // Alert at the exact end of the phase, even if the phone is locked.
+  usePhaseNotifications(phase, endsAt);
 
   useEffect(() => {
     // Keep streaming with the screen locked / app backgrounded, and play
