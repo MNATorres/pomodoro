@@ -36,22 +36,30 @@ src/constants/track-urls.ts             # private streaming URLs (GITIGNORED)
 src/constants/track-urls.example.ts     # template for track-urls.ts
 src/hooks/useTimer.ts                    # countdown + work/break phase logic
 src/hooks/useBackgroundMusic.ts          # streams looping music per phase
+src/hooks/usePhaseNotifications.ts       # schedules cycle-end notifications
 __mocks__/expo-audio.ts                  # jest manual mock (auto-applied)
+__mocks__/expo-notifications.ts          # jest manual mock (auto-applied)
 audio/                                  # local source tracks (GITIGNORED)
 ```
 
 ## Domain notes
 
+- **Android-only app.** No iOS-specific configuration is maintained.
 - A **mode** is a work/break preset in minutes (`src/constants/modes.ts`).
   `DEFAULT_MODE` is 25/5.
-- `useTimer(mode)` counts down and auto-switches between `work` and `break`
-  phases, keeps a `completedSessions` count, and exposes `start`/`pause`/`reset`.
+- `useTimer(mode)` derives the remaining time from a wall-clock `endsAt`
+  timestamp (NOT interval decrements) so it survives OS suspension while the
+  phone is locked; it resyncs via interval ticks and AppState. Phase rollovers
+  stay aligned to real time. Exposes `start`/`pause`/`reset` and `endsAt`.
+- `usePhaseNotifications(phase, endsAt)` schedules a local notification for
+  the exact phase end (works in Expo Go on Android; the channel must be
+  created before requesting permission on Android 13+).
 - **Music:** streamed remotely with `expo-audio` while the timer runs. The
   work phase plays the user-selected work track; breaks play `BREAK_TRACK`.
   `useAudioPlayer` does not react to source changes — `useBackgroundMusic`
   calls `player.replace()` when the uri changes. Real URLs live only in the
   gitignored `src/constants/track-urls.ts` (repo is public; links are private).
-- Installed but not wired up yet: `expo-notifications` (cycle-end alerts),
+- Installed but not wired up yet:
   `@react-native-async-storage/async-storage` (persist settings/stats).
 
 ## Conventions
