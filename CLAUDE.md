@@ -20,6 +20,8 @@ npm start        # start the Expo dev server
 npm run android  # open on Android
 npm run ios       # open on iOS
 npm run web       # open in the browser (needs react-native-web + react-dom)
+npm test         # run the jest suite
+npm run test:coverage # suite + coverage report
 npx tsc --noEmit # type-check
 ```
 
