@@ -38,8 +38,12 @@ export default function App() {
   useBackgroundMusic(activeTrack.uri, running);
 
   useEffect(() => {
-    // Play music even when the iOS hardware silent switch is on.
-    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+    // Keep streaming with the screen locked / app backgrounded, and play
+    // even when the iOS hardware silent switch is on.
+    setAudioModeAsync({
+      shouldPlayInBackground: true,
+      playsInSilentMode: true,
+    }).catch(() => {});
   }, []);
 
   return (
