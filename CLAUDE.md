@@ -39,8 +39,12 @@ src/hooks/useBackgroundMusic.ts          # streams looping music per phase
 src/hooks/usePhaseNotifications.ts       # schedules cycle-end notifications
 __mocks__/expo-audio.ts                  # jest manual mock (auto-applied)
 __mocks__/expo-notifications.ts          # jest manual mock (auto-applied)
-audio/                                  # local source tracks (GITIGNORED)
 ```
+
+Music files are NOT stored in the repo or the working tree: tracks are
+streamed from private URLs (see `track-urls.ts`). The `audio/` and
+`assets/audio/` gitignore entries stay as a safety net in case local source
+files ever reappear.
 
 ## Domain notes
 
