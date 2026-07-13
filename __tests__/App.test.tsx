@@ -35,4 +35,17 @@ describe('App', () => {
     fireEvent.press(screen.getByText('Iniciar'));
     expect(screen.getByText('Pausar')).toBeTruthy();
   });
+
+  it('shows the work track selector with both tracks', () => {
+    render(<App />);
+    expect(screen.getByText('Música de trabajo')).toBeTruthy();
+    expect(screen.getByText('Inception')).toBeTruthy();
+    expect(screen.getByText('Vikings')).toBeTruthy();
+  });
+
+  it('keeps the timer intact when another work track is selected', () => {
+    render(<App />);
+    fireEvent.press(screen.getByText('Vikings'));
+    expect(screen.getByText('25:00')).toBeTruthy();
+  });
 });
