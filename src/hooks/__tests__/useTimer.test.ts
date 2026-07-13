@@ -73,4 +73,42 @@ describe('useTimer', () => {
     expect(result.current.secondsLeft).toBe(25 * 60);
     expect(result.current.running).toBe(false);
   });
+
+  it('exposes the phase end timestamp while running', () => {
+    const { result } = renderHook(() => useTimer(MODE));
+    expect(result.current.endsAt).toBeNull();
+    act(() => result.current.start());
+    expect(result.current.endsAt).toBe(Date.now() + 25 * 60 * 1000);
+    act(() => result.current.pause());
+    expect(result.current.endsAt).toBeNull();
+  });
+
+  it('resyncs after the clock jumps while suspended (locked phone)', () => {
+    const { result } = renderHook(() => useTimer(MODE));
+    act(() => result.current.start());
+    // Simulate the OS suspending JS for 10 minutes: the clock moves forward
+    // but no interval ticks fire, then a tick runs on resume.
+    act(() => {
+      jest.setSystemTime(Date.now() + 10 * 60 * 1000);
+      jest.advanceTimersByTime(250);
+    });
+    expect(result.current.phase).toBe('work');
+    // 25:00 minus the ~10 minutes that really elapsed.
+    expect(result.current.secondsLeft).toBe(15 * 60);
+  });
+
+  it('rolls into the break with real-time alignment after waking past the end', () => {
+    const { result } = renderHook(() => useTimer(MODE));
+    act(() => result.current.start());
+    // Suspended through the end of the work phase: wake up 26 minutes later.
+    act(() => {
+      jest.setSystemTime(Date.now() + 26 * 60 * 1000);
+      jest.advanceTimersByTime(250);
+    });
+    // The break started when the work phase really ended (minute 25), so one
+    // of its five minutes is already gone.
+    expect(result.current.phase).toBe('break');
+    expect(result.current.completedSessions).toBe(1);
+    expect(result.current.secondsLeft).toBe(4 * 60);
+  });
 });

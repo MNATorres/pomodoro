@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { PomodoroMode } from '../constants/modes';
 
 export type Phase = 'work' | 'break';
@@ -7,6 +8,8 @@ export type UseTimer = {
   phase: Phase;
   secondsLeft: number;
   running: boolean;
+  /** Epoch ms when the current phase ends; null while paused. */
+  endsAt: number | null;
   /** Number of completed work sessions. */
   completedSessions: number;
   start: () => void;
@@ -16,48 +19,89 @@ export type UseTimer = {
 
 /**
  * Countdown timer that alternates between work and break phases for the given
- * mode. When a phase reaches zero it automatically switches to the other phase
- * and keeps running.
+ * mode.
+ *
+ * The remaining time is derived from a wall-clock end timestamp instead of
+ * counting interval ticks, so the timer stays correct when the OS suspends
+ * JavaScript (screen locked / app backgrounded) and resyncs on resume.
  */
 export function useTimer(mode: PomodoroMode): UseTimer {
   const [phase, setPhase] = useState<Phase>('work');
   const [secondsLeft, setSecondsLeft] = useState(mode.work * 60);
-  const [running, setRunning] = useState(false);
+  const [endsAt, setEndsAt] = useState<number | null>(null);
   const [completedSessions, setCompletedSessions] = useState(0);
+
+  const running = endsAt !== null;
 
   // Reset everything whenever the selected mode changes.
   useEffect(() => {
-    setRunning(false);
+    setEndsAt(null);
     setPhase('work');
     setSecondsLeft(mode.work * 60);
     setCompletedSessions(0);
   }, [mode]);
 
-  // Tick once per second while running.
+  // While running, derive the remaining time from the end timestamp. When the
+  // end is reached — even long after, e.g. while the phone was locked — roll
+  // into the next phase keeping real-time alignment: the new phase starts at
+  // the previous phase's end, not at the moment the app woke up. If several
+  // phases went by, the effect re-runs (endsAt changed) and catches up.
   useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => {
-      setSecondsLeft((s) => Math.max(0, s - 1));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [running]);
+    if (endsAt === null) return;
 
-  // Handle phase transition when the countdown reaches zero.
-  useEffect(() => {
-    if (secondsLeft > 0) return;
-    const nextPhase: Phase = phase === 'work' ? 'break' : 'work';
-    if (phase === 'work') setCompletedSessions((c) => c + 1);
-    setPhase(nextPhase);
-    setSecondsLeft((nextPhase === 'work' ? mode.work : mode.break) * 60);
-  }, [secondsLeft, phase, mode]);
+    const tick = () => {
+      const now = Date.now();
+      if (now < endsAt) {
+        setSecondsLeft(Math.ceil((endsAt - now) / 1000));
+        return;
+      }
+      const nextPhase: Phase = phase === 'work' ? 'break' : 'work';
+      const nextDurationMs =
+        (nextPhase === 'work' ? mode.work : mode.break) * 60_000;
+      if (phase === 'work') setCompletedSessions((c) => c + 1);
+      setPhase(nextPhase);
+      setEndsAt(endsAt + nextDurationMs);
+      setSecondsLeft(
+        Math.max(0, Math.ceil((endsAt + nextDurationMs - now) / 1000)),
+      );
+    };
 
-  const start = useCallback(() => setRunning(true), []);
-  const pause = useCallback(() => setRunning(false), []);
+    tick(); // sync immediately (covers start, rollover and app resume)
+    const id = setInterval(tick, 250);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') tick();
+    });
+    return () => {
+      clearInterval(id);
+      subscription.remove();
+    };
+  }, [endsAt, phase, mode]);
+
+  const start = useCallback(() => {
+    if (running) return;
+    setEndsAt(Date.now() + secondsLeft * 1000);
+  }, [running, secondsLeft]);
+
+  const pause = useCallback(() => {
+    if (endsAt === null) return;
+    setSecondsLeft(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
+    setEndsAt(null);
+  }, [endsAt]);
+
   const reset = useCallback(() => {
-    setRunning(false);
+    setEndsAt(null);
     setPhase('work');
     setSecondsLeft(mode.work * 60);
   }, [mode]);
 
-  return { phase, secondsLeft, running, completedSessions, start, pause, reset };
+  return {
+    phase,
+    secondsLeft,
+    running,
+    endsAt,
+    completedSessions,
+    start,
+    pause,
+    reset,
+  };
 }
