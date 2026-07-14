@@ -17,13 +17,22 @@ A Pomodoro timer app for Android built with React Native and Expo.
   (streaming is only the initial fallback), so sessions never depend on the
   network
 - Countdown beeps during the last 5 seconds of each phase
-- Works with the phone locked: wall-clock based timer, music keeps playing
-  in the background, and a local notification fires when each phase ends
-  (`expo-notifications`)
+- Works with the phone locked: a media-playback **foreground service** (via
+  `expo-audio`'s lock-screen session) keeps the app alive in the background, so
+  the wall-clock timer keeps running, the music switches from work to break on
+  time, and playback isn't paused by other sounds (`mixWithOthers`). A local
+  notification also fires when each phase ends (`expo-notifications`)
+- Survives being killed: the session (mode, track, phase, remaining time,
+  completed count) is persisted to `@react-native-async-storage/async-storage`
+  and restored on relaunch, so an OS process-kill in the background doesn't
+  reset everything
+
+> Note: the background foreground service needs a **development build**
+> (`npm run android`), not Expo Go — Expo Go can't host it.
 
 ### Planned
 
-- Persisted settings and session stats (`@react-native-async-storage/async-storage`)
+- Per-user settings screen (default mode, custom durations)
 
 ## Getting started
 
