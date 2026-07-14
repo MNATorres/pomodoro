@@ -21,6 +21,11 @@ import { useCountdownBeeps } from './src/hooks/useCountdownBeeps';
 import { usePhaseNotifications } from './src/hooks/usePhaseNotifications';
 import { useTimer } from './src/hooks/useTimer';
 import { ensureTrackCached } from './src/lib/track-cache';
+import {
+  loadSession,
+  saveSession,
+  type SessionSnapshot,
+} from './src/lib/session-store';
 
 function formatTime(totalSeconds: number): string {
   const mm = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
@@ -28,9 +33,36 @@ function formatTime(totalSeconds: number): string {
   return `${mm}:${ss}`;
 }
 
+/**
+ * Loads the persisted session before mounting the timer so a session that was
+ * running survives the OS killing the app in the background. `undefined` means
+ * the load is still in flight (show a blank splash); `null` means there is no
+ * saved session (start fresh).
+ */
 export default function App() {
-  const [mode, setMode] = useState<PomodoroMode>(DEFAULT_MODE);
-  const [workTrack, setWorkTrack] = useState<Track>(DEFAULT_WORK_TRACK);
+  const [initial, setInitial] = useState<SessionSnapshot | null | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    loadSession().then((snapshot) => setInitial(snapshot ?? null));
+  }, []);
+
+  if (initial === undefined) {
+    return <View style={styles.splash} />;
+  }
+  return <Pomodoro initial={initial} />;
+}
+
+export function Pomodoro({ initial }: { initial: SessionSnapshot | null }) {
+  const [mode, setMode] = useState<PomodoroMode>(
+    () => MODES.find((m) => m.id === initial?.modeId) ?? DEFAULT_MODE,
+  );
+  const [workTrack, setWorkTrack] = useState<Track>(
+    () =>
+      WORK_TRACKS.find((t) => t.id === initial?.workTrackId) ??
+      DEFAULT_WORK_TRACK,
+  );
   const {
     phase,
     secondsLeft,
@@ -40,7 +72,22 @@ export default function App() {
     start,
     pause,
     reset,
-  } = useTimer(mode);
+  } = useTimer(
+    mode,
+    initial
+      ? {
+          phase: initial.phase,
+          endsAt: initial.endsAt,
+          // A running timer derives its remaining time from `endsAt`; only a
+          // paused one needs the stored seconds.
+          secondsLeft:
+            initial.endsAt !== null
+              ? Math.max(0, Math.ceil((initial.endsAt - Date.now()) / 1000))
+              : initial.secondsLeft,
+          completedSessions: initial.completedSessions,
+        }
+      : undefined,
+  );
 
   const isWork = phase === 'work';
   const accent = useMemo(() => (isWork ? '#e2584d' : '#3aa675'), [isWork]);
@@ -86,6 +133,22 @@ export default function App() {
       interruptionMode: 'doNotMix',
     }).catch(() => {});
   }, []);
+
+  // Persist the session so it survives the OS killing the app in the
+  // background. `pausedRemaining` is the effect's proxy for `secondsLeft`: it
+  // only changes when paused (while running the time is derived from
+  // `endsAt`), so this does not write on every one-second tick.
+  const pausedRemaining = endsAt === null ? secondsLeft : null;
+  useEffect(() => {
+    void saveSession({
+      modeId: mode.id,
+      workTrackId: workTrack.id,
+      phase,
+      endsAt,
+      secondsLeft: pausedRemaining ?? 0,
+      completedSessions,
+    });
+  }, [mode.id, workTrack.id, phase, endsAt, completedSessions, pausedRemaining]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: accent }]}>
@@ -166,6 +229,10 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    backgroundColor: '#e2584d',
+  },
   container: {
     flex: 1,
     alignItems: 'center',

@@ -17,6 +17,14 @@ export type UseTimer = {
   reset: () => void;
 };
 
+/** Initial timer state used to resume a restored session. */
+export type TimerInit = {
+  phase: Phase;
+  endsAt: number | null;
+  secondsLeft: number;
+  completedSessions: number;
+};
+
 /**
  * Countdown timer that alternates between work and break phases for the given
  * mode.
@@ -24,12 +32,20 @@ export type UseTimer = {
  * The remaining time is derived from a wall-clock end timestamp instead of
  * counting interval ticks, so the timer stays correct when the OS suspends
  * JavaScript (screen locked / app backgrounded) and resyncs on resume.
+ *
+ * `init`, when given, seeds the state from a persisted session so a timer that
+ * was running survives the app process being killed. It is read only on the
+ * first render.
  */
-export function useTimer(mode: PomodoroMode): UseTimer {
-  const [phase, setPhase] = useState<Phase>('work');
-  const [secondsLeft, setSecondsLeft] = useState(mode.work * 60);
-  const [endsAt, setEndsAt] = useState<number | null>(null);
-  const [completedSessions, setCompletedSessions] = useState(0);
+export function useTimer(mode: PomodoroMode, init?: TimerInit): UseTimer {
+  const [phase, setPhase] = useState<Phase>(init?.phase ?? 'work');
+  const [secondsLeft, setSecondsLeft] = useState(
+    init?.secondsLeft ?? mode.work * 60,
+  );
+  const [endsAt, setEndsAt] = useState<number | null>(init?.endsAt ?? null);
+  const [completedSessions, setCompletedSessions] = useState(
+    init?.completedSessions ?? 0,
+  );
 
   const running = endsAt !== null;
 
