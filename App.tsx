@@ -124,13 +124,16 @@ export function Pomodoro({ initial }: { initial: SessionSnapshot | null }) {
   useCountdownBeeps(running, secondsLeft);
 
   useEffect(() => {
-    // Keep playing with the screen locked / app backgrounded, play even when
-    // the iOS hardware silent switch is on, and — `doNotMix` — hold the audio
-    // focus so a system sound or notification cannot pause our music.
+    // Keep playing with the screen locked / app backgrounded, and play even
+    // when the iOS hardware silent switch is on. `mixWithOthers` means we
+    // never request exclusive audio focus, so a notification, another app, or
+    // a system sound can no longer steal focus and pause our music — the most
+    // common cause of playback "just stopping". (Trade-off: our music also
+    // won't pause for a phone call; switch to 'doNotMix' to prefer that.)
     setAudioModeAsync({
       shouldPlayInBackground: true,
       playsInSilentMode: true,
-      interruptionMode: 'doNotMix',
+      interruptionMode: 'mixWithOthers',
     }).catch(() => {});
   }, []);
 
