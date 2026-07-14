@@ -12,11 +12,12 @@ beforeEach(() => {
 
 const WORK_URI = 'https://example.com/work.m4a';
 const BREAK_URI = 'https://example.com/break.m4a';
+const META = { title: 'Trabajo', artist: 'Pomodoro' };
 
 function setup(uri: string, playing: boolean) {
   return renderHook(
     (props: { uri: string; playing: boolean }) =>
-      useBackgroundMusic(props.uri, props.playing),
+      useBackgroundMusic(props.uri, props.playing, META),
     { initialProps: { uri, playing } },
   );
 }
@@ -64,5 +65,16 @@ describe('useBackgroundMusic', () => {
     rerender({ uri: WORK_URI, playing: false });
     rerender({ uri: WORK_URI, playing: true });
     expect(player.replace).not.toHaveBeenCalled();
+  });
+
+  it('registers the media session (starts the foreground service)', () => {
+    setup(WORK_URI, true);
+    expect(player.setActiveForLockScreen).toHaveBeenCalledWith(true, META);
+  });
+
+  it('tears the media session down on unmount', () => {
+    const { unmount } = setup(WORK_URI, true);
+    unmount();
+    expect(player.setActiveForLockScreen).toHaveBeenCalledWith(false);
   });
 });

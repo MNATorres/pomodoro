@@ -6,6 +6,9 @@ const player = {
   pause: jest.fn(),
   replace: jest.fn(),
   seekTo: jest.fn(),
+  setActiveForLockScreen: jest.fn(),
+  updateLockScreenMetadata: jest.fn(),
+  clearLockScreenControls: jest.fn(),
 };
 
 export const useAudioPlayer = jest.fn(() => player);

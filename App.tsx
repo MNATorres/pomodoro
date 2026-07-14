@@ -50,7 +50,14 @@ export default function App() {
   // first-time fallback): Doze cuts background network and kills streams.
   const activeTrack = isWork ? workTrack : BREAK_TRACK;
   const activeUri = useCachedTrackUri(activeTrack);
-  useBackgroundMusic(activeUri, running);
+  const musicMetadata = useMemo(
+    () => ({
+      title: isWork ? `Trabajo · ${workTrack.label}` : 'Descanso',
+      artist: 'Pomodoro',
+    }),
+    [isWork, workTrack.label],
+  );
+  useBackgroundMusic(activeUri, running, musicMetadata);
 
   useEffect(() => {
     // Pre-download every track sequentially so future sessions are offline.
@@ -70,11 +77,13 @@ export default function App() {
   useCountdownBeeps(running, secondsLeft);
 
   useEffect(() => {
-    // Keep streaming with the screen locked / app backgrounded, and play
-    // even when the iOS hardware silent switch is on.
+    // Keep playing with the screen locked / app backgrounded, play even when
+    // the iOS hardware silent switch is on, and — `doNotMix` — hold the audio
+    // focus so a system sound or notification cannot pause our music.
     setAudioModeAsync({
       shouldPlayInBackground: true,
       playsInSilentMode: true,
+      interruptionMode: 'doNotMix',
     }).catch(() => {});
   }, []);
 
