@@ -1,0 +1,21 @@
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
+index 839aaef..2562eac 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
+@@ -20,10 +20,12 @@ class AudioMediaSessionCallback : MediaSession.Callback {
+       return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+         .setAvailablePlayerCommands(
+           MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon()
+-            // Keep seek commands for the seek slider
+-            .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+-            .add(Player.COMMAND_SEEK_FORWARD)
+-            .add(Player.COMMAND_SEEK_BACK)
++            // PATCHED (pomodoro): advertise NO seek support so System UI hides
++            // the progress bar and its position/duration labels — the media
++            // card shows only the pomodoro countdown, track name and controls.
++            .remove(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
++            .remove(Player.COMMAND_SEEK_FORWARD)
++            .remove(Player.COMMAND_SEEK_BACK)
+             // Remove track navigation commands
+             .remove(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+             .remove(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
