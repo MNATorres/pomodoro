@@ -69,12 +69,74 @@ describe('useBackgroundMusic', () => {
 
   it('registers the media session (starts the foreground service)', () => {
     setup(WORK_URI, true);
-    expect(player.setActiveForLockScreen).toHaveBeenCalledWith(true, META);
+    expect(player.setActiveForLockScreen).toHaveBeenCalledWith(true, META, {
+      showSeekForward: false,
+      showSeekBackward: false,
+    });
   });
 
   it('tears the media session down on unmount', () => {
     const { unmount } = setup(WORK_URI, true);
     unmount();
     expect(player.setActiveForLockScreen).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('remote media controls', () => {
+  function setupWithToggle(playing: boolean, onRemoteToggle: jest.Mock) {
+    return renderHook(
+      (props: { uri: string; playing: boolean }) =>
+        useBackgroundMusic(props.uri, props.playing, META, onRemoteToggle),
+      { initialProps: { uri: WORK_URI, playing } },
+    );
+  }
+
+  /** Emit a playbackStatusUpdate to the hook's registered listener. */
+  function emitStatus(playing: boolean, extra: object = {}) {
+    const listener = (player.addListener as jest.Mock).mock.calls.at(-1)![1];
+    listener({ isLoaded: true, isBuffering: false, playing, ...extra });
+  }
+
+  it('reports a pause coming from the media session', () => {
+    const onRemoteToggle = jest.fn();
+    setupWithToggle(true, onRemoteToggle);
+    emitStatus(true);
+    emitStatus(false);
+    expect(onRemoteToggle).toHaveBeenCalledWith(false);
+  });
+
+  it('reports a resume coming from the media session', () => {
+    const onRemoteToggle = jest.fn();
+    setupWithToggle(false, onRemoteToggle);
+    emitStatus(false);
+    emitStatus(true);
+    expect(onRemoteToggle).toHaveBeenCalledWith(true);
+  });
+
+  it('does not report transitions caused by the app itself', () => {
+    const onRemoteToggle = jest.fn();
+    const { rerender } = setupWithToggle(true, onRemoteToggle);
+    emitStatus(true);
+    rerender({ uri: WORK_URI, playing: false }); // in-app pause
+    emitStatus(false); // player echoes it
+    expect(onRemoteToggle).not.toHaveBeenCalled();
+  });
+
+  it('ignores transient buffering states', () => {
+    const onRemoteToggle = jest.fn();
+    setupWithToggle(true, onRemoteToggle);
+    emitStatus(true);
+    emitStatus(false, { isBuffering: true });
+    emitStatus(false, { isLoaded: false });
+    expect(onRemoteToggle).not.toHaveBeenCalled();
+  });
+
+  it('ignores the pause blip caused by switching tracks', () => {
+    const onRemoteToggle = jest.fn();
+    const { rerender } = setupWithToggle(true, onRemoteToggle);
+    emitStatus(true);
+    rerender({ uri: BREAK_URI, playing: true }); // phase change replaces the source
+    emitStatus(false); // transient blip from the swap
+    expect(onRemoteToggle).not.toHaveBeenCalled();
   });
 });
