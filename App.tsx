@@ -97,14 +97,24 @@ export function Pomodoro({ initial }: { initial: SessionSnapshot | null }) {
   // first-time fallback): Doze cuts background network and kills streams.
   const activeTrack = isWork ? workTrack : BREAK_TRACK;
   const activeUri = useCachedTrackUri(activeTrack);
+  // The media card title IS the pomodoro: remaining time + phase, refreshed
+  // every tick (the foreground service keeps JS alive to do it).
   const musicMetadata = useMemo(
     () => ({
-      title: isWork ? `Trabajo · ${workTrack.label}` : 'Descanso',
-      artist: 'Pomodoro',
+      title: `${formatTime(secondsLeft)} · ${isWork ? 'Trabajo' : 'Descanso'}`,
+      artist: isWork ? `Pomodoro · ${workTrack.label}` : 'Pomodoro',
     }),
-    [isWork, workTrack.label],
+    [secondsLeft, isWork, workTrack.label],
   );
-  useBackgroundMusic(activeUri, running, musicMetadata);
+  // Play/pause from the media controls (lock screen, watch, headset) drives
+  // the TIMER, not just the music — both always stay in sync.
+  useBackgroundMusic(activeUri, running, musicMetadata, (shouldPlay) => {
+    if (shouldPlay) {
+      start();
+    } else {
+      pause();
+    }
+  });
 
   useEffect(() => {
     // Pre-download every track sequentially so future sessions are offline.

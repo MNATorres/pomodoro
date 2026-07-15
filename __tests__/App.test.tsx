@@ -4,8 +4,20 @@ jest.mock('expo-file-system', () =>
 
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAudioPlayer } from 'expo-audio';
 import App, { Pomodoro } from '../App';
 import { saveSession } from '../src/lib/session-store';
+
+// The expo-audio manual mock returns a shared player instance.
+const player = (useAudioPlayer as unknown as jest.Mock)();
+
+/** Emit a playbackStatusUpdate as if it came from the media session. */
+function emitPlaybackStatus(playing: boolean) {
+  const listener = (player.addListener as jest.Mock).mock.calls.at(-1)![1];
+  act(() => {
+    listener({ isLoaded: true, isBuffering: false, playing });
+  });
+}
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -119,6 +131,48 @@ describe('Pomodoro', () => {
     expect(screen.getByText('25:00')).toBeTruthy();
     expect(screen.getByText('Trabajo')).toBeTruthy();
     expect(screen.getByText('Iniciar')).toBeTruthy();
+  });
+
+  it('titles the media card with the countdown and phase', () => {
+    render(<Pomodoro initial={null} />);
+    expect(player.updateLockScreenMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '25:00 · Trabajo',
+        artist: 'Pomodoro · Inception',
+      }),
+    );
+  });
+
+  it('pauses the timer when playback is paused from the media session', () => {
+    render(<Pomodoro initial={null} />);
+    fireEvent.press(screen.getByText('Iniciar'));
+    act(() => {
+      jest.advanceTimersByTime(5_000);
+    });
+    emitPlaybackStatus(true);
+    emitPlaybackStatus(false); // pause pressed on the lock screen / watch
+    expect(screen.getByText('Iniciar')).toBeTruthy();
+    // The countdown is frozen too.
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
+    expect(screen.getByText('24:55')).toBeTruthy();
+  });
+
+  it('resumes the timer when playback is resumed from the media session', () => {
+    render(<Pomodoro initial={null} />);
+    fireEvent.press(screen.getByText('Iniciar'));
+    act(() => {
+      jest.advanceTimersByTime(5_000);
+    });
+    fireEvent.press(screen.getByText('Pausar'));
+    emitPlaybackStatus(false);
+    emitPlaybackStatus(true); // play pressed on the lock screen / watch
+    expect(screen.getByText('Pausar')).toBeTruthy();
+    act(() => {
+      jest.advanceTimersByTime(5_000);
+    });
+    expect(screen.getByText('24:50')).toBeTruthy();
   });
 
   it('restores a paused session from its snapshot', () => {
