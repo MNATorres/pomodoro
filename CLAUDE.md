@@ -85,11 +85,14 @@ files ever reappear.
   `interruptionMode: 'mixWithOthers'` so nothing can steal audio focus and
   pause playback. Do not remove the lock-screen registration thinking it is
   only cosmetic — it is load-bearing.
-- **Native patch (patch-package):** `patches/expo-audio+1.1.1.patch` removes
-  the seek commands from the Android media session so System UI hides the
-  progress bar and its time labels (the card must show pomodoro data, not the
-  backing track's position). Re-applied by the `postinstall` script; if
-  expo-audio is upgraded, regenerate the patch or drop it consciously.
+- **Native patch (patch-package):** `patches/expo-audio+1.1.1.patch` makes the
+  media card's progress bar track the POMODORO instead of the audio file: the
+  session player is wrapped in a ForwardingPlayer whose duration/position come
+  from a payload smuggled through `metadata.albumTitle`
+  (`pomodoro:<durationMs>:<endsAtMs|-1>:<pausedRemainingMs|-1>`, built in
+  App.tsx and hidden from the notification UI). Seek commands are also removed
+  (bar not draggable). Re-applied by the `postinstall` script; if expo-audio is
+  upgraded, regenerate the patch or drop it consciously.
 - **Media-card ↔ timer sync:** the card's title is the live countdown
   (`mm:ss · fase`, refreshed each tick via `updateLockScreenMetadata`), and
   play/pause pressed on the card/watch/headset drives the TIMER via
