@@ -98,13 +98,20 @@ export function Pomodoro({ initial }: { initial: SessionSnapshot | null }) {
   const activeTrack = isWork ? workTrack : BREAK_TRACK;
   const activeUri = useCachedTrackUri(activeTrack);
   // The media card title IS the pomodoro: remaining time + phase, refreshed
-  // every tick (the foreground service keeps JS alive to do it).
+  // every tick (the foreground service keeps JS alive to do it). albumTitle
+  // smuggles the phase progress to the patched native media session so the
+  // card's progress bar tracks the pomodoro, not the audio file (see
+  // patches/expo-audio+1.1.1.patch); the patch keeps it out of the UI.
+  const phaseDurationMs = (isWork ? mode.work : mode.break) * 60_000;
   const musicMetadata = useMemo(
     () => ({
       title: `${formatTime(secondsLeft)} · ${isWork ? 'Trabajo' : 'Descanso'}`,
       artist: isWork ? `Pomodoro · ${workTrack.label}` : 'Pomodoro',
+      albumTitle: `pomodoro:${phaseDurationMs}:${endsAt ?? -1}:${
+        endsAt === null ? secondsLeft * 1000 : -1
+      }`,
     }),
-    [secondsLeft, isWork, workTrack.label],
+    [secondsLeft, isWork, workTrack.label, phaseDurationMs, endsAt],
   );
   // Play/pause from the media controls (lock screen, watch, headset) drives
   // the TIMER, not just the music — both always stay in sync.

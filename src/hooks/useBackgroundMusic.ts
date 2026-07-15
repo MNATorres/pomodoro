@@ -93,9 +93,11 @@ export function useBackgroundMusic(
   }, [uri, playing, player]);
 
   // Keep the lock-screen notification label in sync with the phase / track.
+  // albumTitle carries the pomodoro progress payload, so it must also trigger
+  // a resync (e.g. pausing changes the payload but may not change the title).
   useEffect(() => {
     player.updateLockScreenMetadata(metadata);
-  }, [player, metadata.title, metadata.artist]);
+  }, [player, metadata.title, metadata.artist, metadata.albumTitle]);
 
   // Follow the timer's running state.
   useEffect(() => {

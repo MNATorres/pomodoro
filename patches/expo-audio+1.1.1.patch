@@ -1,3 +1,110 @@
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+index 04486e2..94b9228 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+@@ -17,6 +17,7 @@ import android.os.IBinder
+ import android.os.Looper
+ import androidx.annotation.OptIn
+ import androidx.core.app.NotificationCompat
++import androidx.media3.common.ForwardingPlayer
+ import androidx.media3.common.Player
+ import androidx.media3.common.util.UnstableApi
+ import androidx.media3.session.CommandButton
+@@ -43,6 +44,28 @@ class AudioControlsService : MediaSessionService() {
+   private val scope = CoroutineScope(Dispatchers.IO)
+   private var currentArtworkUrl: URL? = null
+   private var currentArtwork: Bitmap? = null
++
++  // PATCHED (pomodoro): phase progress smuggled from JS via metadata.albumTitle
++  // with format "pomodoro:<phaseDurationMs>:<endsAtEpochMs|-1>:<pausedRemainingMs|-1>".
++  // The media session's ForwardingPlayer reports these as duration/position so
++  // the media-card progress bar tracks the pomodoro instead of the audio file.
++  @Volatile private var overrideDurationMs: Long = -1L
++  @Volatile private var overrideEndsAtMs: Long = -1L
++  @Volatile private var overridePausedRemainingMs: Long = -1L
++
++  private fun parseProgressOverride(metadata: Metadata?) {
++    val encoded = metadata?.albumTitle
++    if (encoded == null || !encoded.startsWith("pomodoro:")) {
++      overrideDurationMs = -1L
++      overrideEndsAtMs = -1L
++      overridePausedRemainingMs = -1L
++      return
++    }
++    val parts = encoded.split(":")
++    overrideDurationMs = parts.getOrNull(1)?.toLongOrNull() ?: -1L
++    overrideEndsAtMs = parts.getOrNull(2)?.toLongOrNull() ?: -1L
++    overridePausedRemainingMs = parts.getOrNull(3)?.toLongOrNull() ?: -1L
++  }
+   private val notificationId: Int
+     get() = currentPlayer?.hashCode() ?: CHANNEL_ID.hashCode()
+ 
+@@ -119,7 +142,9 @@ class AudioControlsService : MediaSessionService() {
+       .setSmallIcon(androidx.media3.session.R.drawable.media3_icon_circular_play)
+       .setContentTitle(currentMetadata?.title ?: "\u200E")
+       .setContentText(currentMetadata?.artist)
+-      .setSubText(currentMetadata?.albumTitle)
++      // PATCHED (pomodoro): the albumTitle field carries the smuggled progress
++      // payload — never show it as notification text.
++      .setSubText(currentMetadata?.albumTitle?.takeUnless { it.startsWith("pomodoro:") })
+       .setLargeIcon(currentArtwork)
+       .setContentIntent(buildContentIntent())
+       .setAutoCancel(false)
+@@ -210,6 +235,7 @@ class AudioControlsService : MediaSessionService() {
+     currentPlayer = player
+     currentMetadata = metadata
+     currentOptions = options
++    parseProgressOverride(metadata) // PATCHED (pomodoro)
+ 
+     metadata?.artworkUrl?.let {
+       loadArtworkFromUrl(it) { bitmap ->
+@@ -222,7 +248,37 @@ class AudioControlsService : MediaSessionService() {
+     if (player != null) {
+       mediaSession?.release()
+ 
+-      val session = MediaSession.Builder(this, player.ref)
++      // PATCHED (pomodoro): the session player reports the pomodoro phase as
++      // duration/position (when provided via metadata) so the media-card
++      // progress bar and its time labels track the pomodoro, not the track.
++      val sessionPlayer = object : ForwardingPlayer(player.ref) {
++        private fun remainingMs(): Long = when {
++          overrideEndsAtMs > 0 ->
++            (overrideEndsAtMs - System.currentTimeMillis()).coerceAtLeast(0L)
++          overridePausedRemainingMs >= 0 -> overridePausedRemainingMs
++          else -> -1L
++        }
++
++        override fun getDuration(): Long =
++          if (overrideDurationMs > 0) overrideDurationMs else super.getDuration()
++
++        override fun getCurrentPosition(): Long {
++          if (overrideDurationMs <= 0) return super.getCurrentPosition()
++          val remaining = remainingMs()
++          if (remaining < 0) return 0L
++          return (overrideDurationMs - remaining).coerceIn(0L, overrideDurationMs)
++        }
++
++        override fun getContentDuration(): Long = duration
++
++        override fun getContentPosition(): Long = currentPosition
++
++        override fun getBufferedPosition(): Long = currentPosition
++
++        override fun isCurrentMediaItemSeekable(): Boolean = false
++      }
++
++      val session = MediaSession.Builder(this, sessionPlayer)
+         .setCallback(AudioMediaSessionCallback())
+         .build()
+ 
+@@ -259,6 +315,7 @@ class AudioControlsService : MediaSessionService() {
+       return
+     }
+     currentMetadata = metadata
++    parseProgressOverride(metadata) // PATCHED (pomodoro)
+     currentMetadata?.artworkUrl?.let {
+       loadArtworkFromUrl(it) { bitmap ->
+         currentArtwork = bitmap
 diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
 index 839aaef..2562eac 100644
 --- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt

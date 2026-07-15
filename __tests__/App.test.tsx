@@ -139,6 +139,20 @@ describe('Pomodoro', () => {
       expect.objectContaining({
         title: '25:00 · Trabajo',
         artist: 'Pomodoro · Inception',
+        // Progress payload for the patched native session: 25 min phase,
+        // not running (endsAt -1), 25 min still remaining while paused.
+        albumTitle: 'pomodoro:1500000:-1:1500000',
+      }),
+    );
+  });
+
+  it('sends the running progress payload to the media session', () => {
+    render(<Pomodoro initial={null} />);
+    fireEvent.press(screen.getByText('Iniciar'));
+    const endsAt = Date.now() + 25 * 60 * 1000;
+    expect(player.updateLockScreenMetadata).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        albumTitle: `pomodoro:1500000:${endsAt}:-1`,
       }),
     );
   });
