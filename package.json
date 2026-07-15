@@ -31,6 +31,8 @@
     "test": "jest",
     "test:watch": "jest --watchAll",
     "test:coverage": "jest --coverage",
+    "deploy": "cd android && .\\gradlew.bat assembleRelease && adb install -r app/build/outputs/apk/release/app-release.apk",
+    "deploy:full": "expo prebuild -p android && npm run deploy",
     "postinstall": "patch-package"
   },
   "jest": {

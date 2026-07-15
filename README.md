@@ -63,34 +63,22 @@ npx tsc --noEmit       # type-check
 
 ## Building a standalone APK
 
-Requires the Android SDK and a JDK (17+). One-time native project setup,
-then a Gradle release build:
+Requires the Android SDK and a JDK (17+), with the phone connected over USB
+(USB debugging enabled).
 
 ```bash
-# 1. Generate the native android/ project (first time, or after config changes)
-npx expo prebuild -p android
-
-# 2. Build the release APK
-cd android
-.\gradlew assembleRelease
+npm run deploy       # JS/TS-only changes: build the release APK + install it
+npm run deploy:full  # after app.json / native dep / patches changes: prebuild first
 ```
 
-The APK is written to `android/app/build/outputs/apk/release/app-release.apk`.
-
-Install it on a phone connected over USB (with USB debugging enabled):
-
-```bash
-adb install android\app\build\outputs\apk\release\app-release.apk
-# use `adb install -r ...` to reinstall keeping app data
-```
-
-Or copy the APK to the phone and open it (allow installs from unknown
-sources when prompted).
+The APK is written to `android/app/build/outputs/apk/release/app-release.apk`
+(you can also copy it to the phone and open it directly).
 
 Notes:
 
 - The release build is signed with the debug keystore: fine for personal
   testing, not for Play Store distribution.
 - The first Gradle build downloads dependencies and can take 10-25 minutes;
-  later builds are much faster.
-- For subsequent code changes only step 2 (plus `adb install -r`) is needed.
+  later builds take a minute or two.
+- Expo Go (`npm start`) is still useful for quick UI iteration, but it cannot
+  host the media foreground service — test lock-screen behavior with the APK.
