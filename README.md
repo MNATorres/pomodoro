@@ -22,6 +22,9 @@ A Pomodoro timer app for Android built with React Native and Expo.
   the wall-clock timer keeps running, the music switches from work to break on
   time, and playback isn't paused by other sounds (`mixWithOthers`). A local
   notification also fires when each phase ends (`expo-notifications`)
+- The media card (lock screen / smartwatch) shows the **live countdown** as its
+  title, and its play/pause button pauses/resumes the **pomodoro itself**, not
+  just the music
 - Survives being killed: the session (mode, track, phase, remaining time,
   completed count) is persisted to `@react-native-async-storage/async-storage`
   and restored on relaunch, so an OS process-kill in the background doesn't

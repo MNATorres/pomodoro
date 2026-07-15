@@ -37,7 +37,7 @@ src/constants/tracks.ts                 # work/break track catalog
 src/constants/track-urls.ts             # private streaming URLs (GITIGNORED)
 src/constants/track-urls.example.ts     # template for track-urls.ts
 src/hooks/useTimer.ts                    # countdown + work/break phase logic
-src/hooks/useBackgroundMusic.ts          # loops music per phase + media/foreground session
+src/hooks/useBackgroundMusic.ts          # loops music per phase + media/foreground session + remote-control sync
 src/hooks/usePhaseNotifications.ts       # schedules cycle-end notifications
 src/hooks/useCountdownBeeps.ts           # beeps in the last seconds of a phase
 src/hooks/useCachedTrackUri.ts           # resolves a track to local/remote uri
@@ -85,6 +85,12 @@ files ever reappear.
   `interruptionMode: 'mixWithOthers'` so nothing can steal audio focus and
   pause playback. Do not remove the lock-screen registration thinking it is
   only cosmetic — it is load-bearing.
+- **Media-card ↔ timer sync:** the card's title is the live countdown
+  (`mm:ss · fase`, refreshed each tick via `updateLockScreenMetadata`), and
+  play/pause pressed on the card/watch/headset drives the TIMER via
+  `onRemoteToggle` (edge detection on `playbackStatusUpdate` that contradicts
+  the `playing` prop; buffering states and the track-swap blip are filtered —
+  see the suppression window in `useBackgroundMusic`).
 - **Session persistence:** `src/lib/session-store.ts` snapshots the session
   (mode, work track, phase, `endsAt`, completed sessions) to AsyncStorage; the
   `App` gate restores it on launch so a background process-kill doesn't reset
